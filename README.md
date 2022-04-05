@@ -1,5 +1,7 @@
 # Learning to Drive Smoothly in Minutes
 
+**IMPORTANT: for an up-to-date version (using Stable-Baselines3 and PyTorch), please take a look at https://github.com/araffin/aae-train-donkeycar/releases/tag/live-twitch-2**
+
 Learning to drive smoothly in minutes, using a reinforcement learning algorithm -- Soft Actor-Critic (SAC) -- and a Variational AutoEncoder (VAE) in the Donkey Car simulator.
 
 
