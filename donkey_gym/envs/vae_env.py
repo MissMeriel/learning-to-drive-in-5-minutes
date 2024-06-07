@@ -11,7 +11,54 @@ from gym.utils import seeding
 from config import INPUT_DIM, MIN_STEERING, MAX_STEERING, JERK_REWARD_WEIGHT, MAX_STEERING_DIFF
 from donkey_gym.core.donkey_proc import DonkeyUnityProcess
 from .donkey_sim import DonkeyUnitySimContoller
+import logging
+from typing import Any, Callable, Dict, List, Optional, Tuple
+logger = logging.getLogger(__name__)
+import time
 
+def supply_defaults(conf: Dict[str, Any]) -> None:
+    """
+    Update the config dictonnary
+    with defaults when values are missing.
+
+    :param conf: The user defined config dict,
+        passed to the environment constructor.
+    """
+    defaults = [
+        ("start_delay", 5.0),
+        ("max_cte", 8.0),
+        ("frame_skip", 1),
+        ("cam_resolution", (80, 160, 3)),
+        ("log_level", logging.INFO),
+        ("host", "localhost"),
+        ("port", 9091),
+        ("steer_limit", 1.0),
+        ("throttle_min", 0.0),
+        ("throttle_max", 1.0),
+        ("exe_path", "F:/DonkeySimWin/donkey_sim.exe"),
+    ]
+
+    for key, val in defaults:
+        if key not in conf:
+            conf[key] = val
+            print(f"Setting default: {key} {val}")
+
+def load_vae(path=None, z_size=32):
+    from vae.controller import VAEController
+    """
+    :param path: (str)
+    :param z_size: (int)
+    :return: (VAEController)
+    """
+    # z_size will be recovered from saved model
+    if z_size is None:
+        assert path is not None
+
+    vae = VAEController(z_size=z_size)
+    if path is not None:
+        vae.load(path)
+    print("Dim VAE = {}".format(vae.z_size))
+    return vae
 
 class DonkeyVAEEnv(gym.Env):
     """
@@ -34,10 +81,59 @@ class DonkeyVAEEnv(gym.Env):
         "render.modes": ["human", "rgb_array"],
     }
 
+    ACTION_NAMES: List[str] = ["steer", "throttle"]
+    VAL_PER_PIXEL: int = 255
+
     def __init__(self, level=0, frame_skip=2, vae=None, const_throttle=None,
                  min_throttle=0.2, max_throttle=0.5,
                  max_cte_error=3.0, n_command_history=0,
                  n_stack=1):
+        conf = {}
+        conf["level"] = level
+
+        # ensure defaults are supplied if missing.
+        supply_defaults(conf)
+
+        # set logging level
+        logging.basicConfig(level=conf["log_level"])
+
+        logger.debug("DEBUG ON")
+        logger.debug(conf)
+
+        # start Unity simulation subprocess
+        self.unity_process = None
+        if "exe_path" in conf:
+            self.unity_process = DonkeyUnityProcess()
+            # the unity sim server will bind to the host ip given
+            self.unity_process.start(conf["exe_path"], host="0.0.0.0", port=conf["port"])
+
+            # wait for simulator to startup and begin listening
+            time.sleep(conf["start_delay"])
+
+        # start simulation com
+        self.viewer = DonkeyUnitySimContoller(conf=conf)
+
+        # Note: for some RL algorithms, it would be better to normalize the action space to [-1, 1]
+        # and then rescale to proper limtis
+        # steering and throttle
+        self.action_space = spaces.Box(
+            low=np.array([-float(conf["steer_limit"]), float(conf["throttle_min"])]),
+            high=np.array([float(conf["steer_limit"]), float(conf["throttle_max"])]),
+            dtype=np.float32,
+        )
+
+        # camera sensor data
+        self.observation_space = spaces.Box(0, self.VAL_PER_PIXEL, self.viewer.get_sensor_size(), dtype=np.uint8)
+
+        # simulation related variables.
+        self.seed()
+
+        # Frame Skipping
+        self.frame_skip = conf["frame_skip"]
+
+        # wait until the car is loaded in the scene
+        self.viewer.wait_until_loaded()
+
         self.vae = vae
         self.z_size = None
         if vae is not None:
@@ -56,25 +152,8 @@ class DonkeyVAEEnv(gym.Env):
         self.n_stack = n_stack
         self.stacked_obs = None
 
-        # Check for env variable
-        exe_path = os.environ.get('DONKEY_SIM_PATH')
-        if exe_path is None:
-            # You must start the executable on your own
-            print("Missing DONKEY_SIM_PATH environment var. We assume the unity env is already started")
-
-        # TCP port for communicating with simulation
-        port = int(os.environ.get('DONKEY_SIM_PORT', 9091))
-
-        self.unity_process = None
-        if exe_path is not None:
-            print("Starting DonkeyGym env")
-            # Start Unity simulation subprocess if needed
-            self.unity_process = DonkeyUnityProcess()
-            headless = os.environ.get('DONKEY_SIM_HEADLESS', False) == '1'
-            self.unity_process.start(exe_path, headless=headless, port=port)
-
         # start simulation com
-        self.viewer = DonkeyUnitySimContoller(level=level, port=port, max_cte_error=max_cte_error)
+        # self.viewer = DonkeyUnitySimContoller(level=level, port=port, max_cte_error=max_cte_error)
 
         if const_throttle is not None:
             # steering only
@@ -200,13 +279,13 @@ class DonkeyVAEEnv(gym.Env):
             self.viewer.take_action(action)
             observation, reward, done, info = self.observe()
 
-        return self.postprocessing_step(action, observation, reward, done, info)
+        # return self.postprocessing_step(action, observation, reward, done, info)
+        return observation, reward, done, info
 
     def reset(self):
         self.viewer.reset()
         self.command_history = np.zeros((1, self.n_commands * self.n_command_history))
         observation, reward, done, info = self.observe()
-
         if self.n_command_history > 0:
             observation = np.concatenate((observation, self.command_history), axis=-1)
 
@@ -214,7 +293,7 @@ class DonkeyVAEEnv(gym.Env):
             self.stacked_obs[...] = 0
             self.stacked_obs[..., -observation.shape[-1]:] = observation
             return self.stacked_obs
-
+        # print("Returning observation of size ", observation.shape)
         return observation
 
     def render(self, mode='human'):
@@ -232,7 +311,9 @@ class DonkeyVAEEnv(gym.Env):
         :return: (np.ndarray, float, bool, dict)
         """
         observation, reward, done, info = self.viewer.observe()
+        # print("observation.shape", observation.shape)
         # Learn from Pixels
+        # print("self.vae is None", self.vae is None)
         if self.vae is None:
             return observation, reward, done, info
         # Encode the image

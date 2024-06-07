@@ -1,0 +1,1 @@
+python3.7 enjoy.py --algo sac --exp-id 0 -n 2000 -best --vae_path vae-level-0-dim-32.pkl

@@ -9,6 +9,9 @@ import warnings
 # Remove warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module='tensorflow')
 warnings.filterwarnings("ignore", category=UserWarning, module='gym')
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 import gym
 import numpy as np
@@ -35,7 +38,7 @@ parser.add_argument('--norm-reward', action='store_true', default=False,
                     help='Normalize reward if applicable (trained with VecNormalize)')
 parser.add_argument('--seed', help='Random generator seed', type=int, default=0)
 parser.add_argument('--reward-log', help='Where to log reward', default='', type=str)
-parser.add_argument('-vae', '--vae-path', help='Path to saved VAE', type=str, default='')
+parser.add_argument('-vae', '--vae_path', help='Path to saved VAE', type=str, default='')
 parser.add_argument('-best', '--best-model', action='store_true', default=False,
                     help='Use best saved model of that experiment (if it exists)')
 args = parser.parse_args()
@@ -58,7 +61,8 @@ if args.best_model:
     best_path = '_best'
 
 model_path = os.path.join(log_path, "{}{}.pkl".format(ENV_ID, best_path))
-
+# model_path = args.vae_path
+model_path = "C:/Users/Meriel/Documents/GitHub/learning-to-drive-in-5-minutes/logs/sac/DonkeyVae-v0-level-1_1/DonkeyVae-v0-level-1.pkl"
 assert os.path.isdir(log_path), "The {} folder was not found".format(log_path)
 assert os.path.isfile(model_path), "No model found for {} on {}, path: {}".format(algo, ENV_ID, model_path)
 
@@ -67,7 +71,8 @@ set_global_seeds(args.seed)
 stats_path = os.path.join(log_path, ENV_ID)
 hyperparams, stats_path = get_saved_hyperparams(stats_path, norm_reward=args.norm_reward)
 hyperparams['vae_path'] = args.vae_path
-
+hyperparams['stats_path'] = "logs/sac/DonkeyVae-v0-level-0_1" #stats_path
+hyperparams['normalize'] = False
 log_dir = args.reward_log if args.reward_log != '' else None
 
 env = create_test_env(stats_path=stats_path, seed=args.seed, log_dir=log_dir,

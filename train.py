@@ -10,7 +10,14 @@ from pprint import pprint
 # Remove warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module='tensorflow')
 warnings.filterwarnings("ignore", category=UserWarning, module='gym')
-
+import os
+# os.environ["DONKEY_SIM_PATH"] = "F:/DonkeySimWin/donkey_sim.exe"
+import sys
+import logging
+# logging.basicConfig(stream=sys.stdout)
+logger = logging.getLogger(__name__)
+print(logger.isEnabledFor(logging.INFO))
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 import numpy as np
 import yaml
 from stable_baselines.common import set_global_seeds
@@ -217,7 +224,7 @@ with open(os.path.join(params_path, 'config.yml'), 'w') as f:
     yaml.dump(saved_hyperparams, f)
 
 if args.save_vae and vae is not None:
-    print("Saving VAE")
+    print("Saving VAE to " + str(os.path.join(params_path, 'vae')))
     vae.save(os.path.join(params_path, 'vae'))
 
 if normalize:

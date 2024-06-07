@@ -9,7 +9,7 @@ import os
 import cloudpickle
 import numpy as np
 import tensorflow as tf
-
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 def conv_to_fc(input_tensor):
     """

@@ -6,6 +6,7 @@ import time
 
 import yaml
 import tensorflow as tf
+tf.logging.set_verbosity(tf.logging.ERROR)
 import numpy as np
 from stable_baselines import logger
 from stable_baselines.bench import Monitor
@@ -127,8 +128,7 @@ def make_env(seed=0, log_dir=None, vae=None, frame_skip=None,
     return _init
 
 
-def create_test_env(stats_path=None, seed=0,
-                    log_dir='', hyperparams=None):
+def create_test_env(stats_path=None, seed=0, log_dir='', hyperparams=None):
     """
     Create environment for testing a trained agent
 
@@ -146,14 +146,20 @@ def create_test_env(stats_path=None, seed=0,
         logger.configure()
 
     vae_path = hyperparams['vae_path']
+    stats_path = hyperparams['stats_path']
+    print("stats_path", stats_path)
+    print("vae_path", vae_path)
     if vae_path == '':
         vae_path = os.path.join(stats_path, 'vae.pkl')
     vae = None
+    # print("vae_path", vae_path)
+    # print("stats_path", stats_path)
+    # stats_path = "C:/Users/Meriel/Documents/GitHub/learning-to-drive-in-5-minutes/logs/sac/DonkeyVae-v0-level-0_1/DonkeyVae-v0-level-0"
+    # print("os.path.isfile(vae_path)", os.path.isfile(vae_path))
     if stats_path is not None and os.path.isfile(vae_path):
         vae = load_vae(vae_path)
-
-    env = DummyVecEnv([make_env(seed, log_dir, vae=vae,
-                                frame_skip=TEST_FRAME_SKIP)])
+    print("vae is None", vae is None)
+    env = DummyVecEnv([make_env(seed, log_dir, vae=vae, frame_skip=TEST_FRAME_SKIP)])
 
     # Load saved stats for normalizing input and rewards
     # And optionally stack frames

@@ -1,43 +1,39 @@
-# Original author: Felix Yu
-
-import subprocess
+"""
+file: donkey_proc.py
+author: Felix Yu
+date: 2018-09-12
+"""
 import os
+import subprocess
 
 
-class DonkeyUnityProcess(object):
-    """
-    Utility class to start unity process if needed.
-    """
+class DonkeyUnityProcess:
     def __init__(self):
-        self.process = None
+        self.proc1 = None
 
-    def start(self, sim_path, headless=False, port=9090):
-        """
-        :param sim_path: (str) Path to the executable
-        :param headless: (bool)
-        :param port: (int)
-        """
-        if not os.path.exists(sim_path):
-            print(sim_path, "does not exist. not starting sim.")
+    # ------ Launch Unity Env ----------- #
+
+    def start(self, sim_path: str, host: str = "0.0.0.0", port: int = 9091):
+
+        if sim_path == "remote":
             return
 
-        port_args = ["--port", str(port), '-logFile', 'unitylog.txt']
+        if not os.path.exists(sim_path):
+            print(sim_path, "does not exist. you must start sim manually.")
+            return
+
+        port_args = ["--port", str(port), "--host", str(host), "-logFile", "unitylog.txt"]
 
         # Launch Unity environment
-        if headless:
-            self.process = subprocess.Popen(
-                [sim_path, '-nographics', '-batchmode'] + port_args)
-        else:
-            self.process = subprocess.Popen(
-                [sim_path] + port_args)
+        self.proc1 = subprocess.Popen([sim_path] + port_args)
 
-        print("Donkey subprocess started")
+        print("donkey subprocess started")
 
-    def quit(self):
+    def quit(self) -> None:
         """
         Shutdown unity environment
         """
-        if self.process is not None:
-            print("Closing donkey sim subprocess")
-            self.process.kill()
-            self.process = None
+        if self.proc1 is not None:
+            print("closing donkey sim subprocess")
+            self.proc1.kill()
+            self.proc1 = None

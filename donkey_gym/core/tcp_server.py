@@ -4,7 +4,8 @@ import asyncore
 import json
 import re
 import socket
-
+import logging
+logger = logging.getLogger(__name__)
 
 def replace_float_notation(string):
     """
@@ -80,7 +81,7 @@ class SimServer(asyncore.dispatcher):
         # Called when a client connects to our socket
         client_info = self.accept()
 
-        print('Got a new client', client_info[1])
+        logger.debug('Got a new client', client_info[1])
 
         # make a new steering handler to communicate with the client
         self.sim_handler = SimHandler(sock=client_info[0], msg_handler=self.msg_handler)

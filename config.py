@@ -1,11 +1,12 @@
 # Raw camera input
-CAMERA_HEIGHT = 120
+CAMERA_HEIGHT = 80
 CAMERA_WIDTH = 160
 CAMERA_RESOLUTION = (CAMERA_WIDTH, CAMERA_HEIGHT)
 MARGIN_TOP = CAMERA_HEIGHT // 3
 # Region Of Interest
-# r = [margin_left, margin_top, width, height]
 ROI = [0, MARGIN_TOP, CAMERA_WIDTH, CAMERA_HEIGHT - MARGIN_TOP]
+print("roi:", ROI)
+ROI = [0, 0, 160, 80]
 
 # Input dimension for VAE
 IMAGE_WIDTH = ROI[2]
@@ -34,11 +35,12 @@ MIN_THROTTLE = 0.4
 # max_throttle: 0.6 for level 0 and 0.5 for level 1
 MAX_THROTTLE = 0.6
 # Number of past commands to concatenate with the input
-N_COMMAND_HISTORY = 20
+N_COMMAND_HISTORY = 0
 # Max cross track error (used in normal mode to reset the car)
 MAX_CTE_ERROR = 2.0
 # Level to use for training
-LEVEL = 0
+# ['generated_road', 'warehouse', 'sparkfun_avc', 'generated_track', 'roboracingleague_1', 'waveshare', 'mini_monaco', 'warren', 'circuit_launch', 'mountain_track']
+LEVEL = 'generated_road' #"warehouse" #'generated_road'
 
 # Action repeat
 FRAME_SKIP = 1
@@ -46,7 +48,8 @@ Z_SIZE = 512  # Only used for random features
 TEST_FRAME_SKIP = 1
 
 BASE_ENV = "DonkeyVae-v0"
-ENV_ID = "DonkeyVae-v0-level-{}".format(LEVEL)
+# ENV_ID = "DonkeyVae-v0-level-{}".format(LEVEL)
+ENV_ID = "DonkeyVae-v0-level-1"
 # Params that are logged
 SIM_PARAMS = ['MIN_THROTTLE', 'MAX_THROTTLE', 'FRAME_SKIP',
               'MAX_CTE_ERROR', 'N_COMMAND_HISTORY', 'MAX_STEERING_DIFF']
